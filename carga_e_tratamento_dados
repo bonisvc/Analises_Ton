@@ -1,0 +1,196 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+# # Análise de informações de atendimento aos chamados de clientes Stone
+
+# ### (1) Importando as bibliotecas necessárias
+
+# In[1]:
+
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.cluster import KMeans
+
+
+# ### (2) Carregando a base de dados e entendendo sua estrutura
+
+# #### 2.1. Carregando as bases de dados
+
+# In[2]:
+
+
+cases = pd.read_csv("cases.csv", sep=',')
+creds = pd.read_csv("creds.csv", sep=',')
+
+
+# #### 2.2. Analisando a aparência das bases dados e sua estruturação
+
+# In[4]:
+
+
+cases.head()
+
+
+# In[5]:
+
+
+creds.head()
+
+
+# In[6]:
+
+
+cases.info()
+
+
+# In[7]:
+
+
+creds.info()
+
+
+# ### (3) Tratando as bases de dados
+
+# #### 3.1 Base de dados Case
+
+# > A base de dados veio com um índice importado, vamos remover a coluna referente a esse índice e, após isso, remover todas as linhas que contiverem apenas valores NaN
+
+# In[9]:
+
+
+cases.drop('Unnamed: 0', 
+           axis=1, 
+           inplace=True) #removendo a coluna
+
+
+# In[11]:
+
+
+cases.dropna(axis=0, 
+             how='all',
+             inplace=True) #removendo as linhas apenas com valores NaN
+
+
+# In[12]:
+
+
+cases.head()
+
+
+# > Avaliando se os valores das colunas accountid e Id são iguais e, caso positivo, removendo uma das colunas desnecessárias
+
+# In[16]:
+
+
+(cases['accountid'] == cases['Id']).unique() #comparando as colunas e retornando os valores exclusivos presentes no array
+
+
+# In[17]:
+
+
+cases.drop('Id',
+           axis=1,
+           inplace=True) #removendo a coluna Id
+
+
+# In[18]:
+
+
+cases.head()
+
+
+# > Renomeando as colunas para facilitar a manipulação
+
+# In[20]:
+
+
+cases.rename(columns={
+    'accountid': 'Id',
+    'date_ref': 'Data',
+    'channelid': 'Canal',
+    'waitingtime': 'Espera',
+    'missed': 'Atendido',
+    'pesquisa_de_satisfa_o__c': 'Pesquisa_Satisfacao',
+    'assunto': 'Assunto'
+}, inplace=True)
+
+
+# In[21]:
+
+
+cases.head()
+
+
+# > Alterando os valores da coluna 'Atendido' para Sim e Não, pois com a alteração do nome, o sentido da informação também foi alterado
+
+# In[22]:
+
+
+cases['Atendido'].unique() #confirmando os valores da coluna Atendido
+
+
+# In[24]:
+
+
+cases['Atendido'] = cases['Atendido'].map({False: 'Sim', True: 'Não'}) #Alterando os valores da coluna
+
+
+# In[25]:
+
+
+cases.head()
+
+
+# > Criando uma lista dos assuntos dos chamados para análise
+
+# In[32]:
+
+
+assuntos = list(cases['Assunto']) #transformando a series em lista
+
+
+# In[92]:
+
+
+Assunto_Principal = []
+SubAssunto_01 = []
+SubAssunto_02 = []
+
+for i in range(len(assuntos)):
+    assuntos[i].strip()
+    posicao1 = assuntos[i].find(':') #encontrando a posição do 1º ':'
+    posicao2 = assuntos[i][(posicao1+1):].find(':') #encontrando a posição do 2º ':' a partir do caractere seguinte ao 1º
+
+
+    Assunto_Principal.append(assuntos[i][:posicao1])
+    SubAssunto_01.append(assuntos[i][(posicao1+1):(posicao1 + posicao2 + 1)])
+    SubAssunto_02.append(assuntos[i][(posicao1 + posicao2 + 2):])
+    
+#percorreu-se a lista de assuntos e separou os assuntos pelo separador ':', dividindo em três níveis
+
+
+# > Removendo a coluna de Assunto e incluindo na tabela as listas de assuntos explodidas e transformadas em series
+
+# In[94]:
+
+
+cases.drop('Assunto', 
+           axis=1, 
+           inplace=True)
+
+
+# In[101]:
+
+
+cases['Assunto_Principal'] = pd.Series(Assunto_Principal)
+cases['SubAssunto_01'] = pd.Series(SubAssunto_01)
+cases['SubAssunto_02'] = pd.Series(SubAssunto_02)
+
+
+# In[102]:
+
+
+cases.head()
